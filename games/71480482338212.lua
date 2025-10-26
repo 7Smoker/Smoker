@@ -60,8 +60,8 @@ local AutoToxicVar = false
 local DisplayNameVar = false
 local CapeVar = false
 local SpeedVar = false
-local BalloonVar = false
 local DmgColorVar = false
+local SpiderVar = false
 
 --Colors/Texts/Conns
 local KAHighlight = Color3.fromRGB(255, 0, 0)
@@ -93,8 +93,8 @@ local ForHudVars = {
     ["AutoToxic"] = function() return AutoToxicVar end,
 	["Cape"] = function() return CapeVar end,
 	["Speed"] = function() return SpeedVar end,
-	["Balloons?"] = function() return BalloonVar end,
-	["DamageIndicator"] = function() return DmgColorVar end
+	["DamageIndicator"] = function() return DmgColorVar end,
+	["Spider"] = function() return SpiderVar end
 }
 
 local function DestroyHUD()
@@ -244,10 +244,7 @@ local function ApplyColors()
 	end
 end
 
-local HudSec = VisualWindow:DrawSection({
-	Name = "HUD Style",
-	Position = "left"
-})
+local HudSec = VisualWindow:DrawSection({Name = "HUD Style",})
 
 HudSec:AddToggle({
 	Name = "HUD",
@@ -306,7 +303,7 @@ task.spawn(function()
 end)
 
 --Nametags
-local NameTagsSec = VisualWindow:DrawSection({Name = "NameTag", Position = "left"})
+local NameTagsSec = VisualWindow:DrawSection({Name = "NameTag"})
 
 local connections = {}
 local tagColor = Color3.fromRGB(0, 255, 140)
@@ -467,7 +464,7 @@ Players.PlayerRemoving:Connect(function(player)
 end)
 
 --Vibe
-local VibeSec = VisualWindow:DrawSection({Name = "Vibe",Position = "right"})
+local VibeSec = VisualWindow:DrawSection({Name = "Vibe"})
 local vibeColor = Color3.fromRGB(0, 85, 255)
 local function setVibe(state)
     if state then
@@ -506,7 +503,7 @@ VibeSec:AddColorPicker({
 })
 
 --KillAura
-local KAsec = CombatWindow:DrawSection({Name="KillAura",Position="left"})
+local KAsec = CombatWindow:DrawSection({Name="KillAura"})
 
 local curHL,HUD
 local r = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("ItemsRemotes"):WaitForChild("SwordHit")
@@ -701,7 +698,7 @@ KAsec:AddToggle({Name="Move HUD",Flag="KAmove",Default=false,Callback=function(s
 KAsec:AddColorPicker({Name="HUD Color",Default=HUDc,Flag="KAhudC",Callback=function(c) HUDc=c if HUD and HUD.F then HUD.F.BackgroundColor3=c end end})
 
 --Scaffold
-local ScaffoldSec = UtilityWindow:DrawSection({Name = "Scaffold", Position = "left", Risky = true})
+local ScaffoldSec = UtilityWindow:DrawSection({Name = "Scaffold", Risky = true})
 
 local PlaceRemote = rs:WaitForChild("Remotes"):WaitForChild("ItemsRemotes"):WaitForChild("PlaceBlock")
 local ScaffoldTask
@@ -778,9 +775,7 @@ ScaffoldSec:AddToggle({
 })
 
 --ProjectAim
--- Need to fix
---[[
-local ProjectAimSec = CombatWindow:DrawSection({Name = "ProjectAim", Position = "right"})
+local ProjectAimSec = CombatWindow:DrawSection({Name = "ProjectAim"})
 
 local ProjectAimToggle = ProjectAimSec:AddToggle({
     Name = "ProjectAim [Beta]",
@@ -798,7 +793,7 @@ local ProjectAimToggle = ProjectAimSec:AddToggle({
             for _, p in ipairs(Players:GetPlayers()) do
                 if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 and (not _G.isWhitelisted or not _G.isWhitelisted(p)) then
                     local d = (p.Character.HumanoidRootPart.Position - root.Position).Magnitude
-                    if d < dist and d <= (ProjectAimRange or 20) then
+                    if d < dist and d <= (ProjectAimRange or 35) then
                         dist, nearest = d, p
                     end
                 end
@@ -814,19 +809,8 @@ local ProjectAimToggle = ProjectAimSec:AddToggle({
             local pos = tRoot.Position
             local dist = (pos - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
             local travelTime = dist / speed
-            local predicted = pos + vel * travelTime + Vector3.new(0, 0.5 * gravity * (travelTime^2) / speed, 0)
+            local predicted = pos + vel * travelTime + Vector3.new(0, -0.5 * gravity * (travelTime ^ 2) / speed, 0)
             return predicted
-        end
-
-        local function getHitboxCenter(target)
-            local char = target.Character
-            if char:FindFirstChild("HitBox") then
-                return char.HitBox.Position
-            elseif char:FindFirstChild("HumanoidRootPart") then
-                return char.HumanoidRootPart.Position
-            else
-                return nil
-            end
         end
 
         task.spawn(function()
@@ -838,19 +822,23 @@ local ProjectAimToggle = ProjectAimSec:AddToggle({
                     if target then
                         local weapon, projId, speed
                         if char:FindFirstChild("Bow") or LocalPlayer.Backpack:FindFirstChild("Bow") then
-                            weapon, projId, speed = "Bow", 110, 500
+                            weapon, projId, speed = "Bow", 1, 500
                         elseif char:FindFirstChild("Crossbow") or LocalPlayer.Backpack:FindFirstChild("Crossbow") then
-                            weapon, projId, speed = "Crossbow", 115, 700
+                            weapon, projId, speed = "Crossbow", 1, 700
                         end
+
                         if weapon then
-                            local hitboxCenter = getHitboxCenter(target)
-                            if hitboxCenter then
-                                local predicted = predictPosition(target, speed)
-                                if predicted then
-                                    local startPos = hitboxCenter
-                                    local dir = (predicted - startPos).Unit
-                                    remote:FireServer(projId, weapon, startPos, speed, dir, predicted)
-                                end
+                            local predicted = predictPosition(target, speed)
+                            if predicted then
+                                local dir = (predicted - root.Position).Unit
+                                local args = {
+                                    projId,
+                                    weapon,
+                                    dir,
+                                    predicted,
+                                    true
+                                }
+                                remote:FireServer(unpack(args))
                             end
                         end
                     end
@@ -874,10 +862,8 @@ ProjectAimSec:AddSlider({
 
 ProjectAimToggle.Link:AddHelper({Text = "THIS FEATURE IS IN BETA!"})
 
-]]
-
 --LongJump
-local LongJumpSection = MovementWindow:DrawSection({ Name = "LongJump", Position = "right"})
+local LongJumpSection = MovementWindow:DrawSection({ Name = "LongJump"})
 
 local keybindKey = Enum.KeyCode.Q
 local cooldown = false
@@ -964,7 +950,7 @@ InputService.InputBegan:Connect(function(input, processed)
 end)
 
 --Nuker
-local NukerSec = UtilityWindow:DrawSection({Name="Nuker", Position="left"})
+local NukerSec = UtilityWindow:DrawSection({Name="Nuker"})
 local MineBlock = rs.Remotes.ItemsRemotes.MineBlock
 
 local function getBed(r)
@@ -1016,7 +1002,7 @@ NukerSec:AddToggle({
 })
 
 --Velocity
-local VeloSec = MovementWindow:DrawSection({Name = "VelocityPatch", Position = "left"})
+local VeloSec = MovementWindow:DrawSection({Name = "VelocityPatch"})
 local VeloConn
 local SavedVelo = {}
 local VelocityModules = rs.Modules.VelocityUtils
@@ -1051,7 +1037,7 @@ VeloSec:AddToggle({
 })
 
 --AutoToxic
-local AutoToxicSec = UtilityWindow:DrawSection({Name = "AutoToxic", Position = "right"})
+local AutoToxicSec = UtilityWindow:DrawSection({Name = "AutoToxic"})
 
 local Kills = {"L {name}", "Your pvp is terrible {name}", "Go back to sleep {name}", "{name} got cooked"}
 local Beds  = {"Bed is gone?", "{name} are homeless now", "no more respawn 4 you"}
@@ -1146,7 +1132,7 @@ AutoToxicSec:AddToggle({
 })
 
 --Speed
-local SpeedSec = MovementWindow:DrawSection({Name="Speed", Position="right", Risky = true})
+local SpeedSec = MovementWindow:DrawSection({Name="Speed", Risky = true})
 local conns, method, bounce = {}, "Classic", false
 
 local sbounce = function() bounce = false end
@@ -1219,7 +1205,7 @@ SpeedSec:AddDropdown({
 })
 
 --FOV
-local FOVSec = VisualWindow:DrawSection({Name = "FOV", Position = "right"})
+local FOVSec = VisualWindow:DrawSection({Name = "FOV"})
 
 FOVSec:AddToggle({
     Name = "FOV",
@@ -1251,7 +1237,7 @@ FOVSec:AddSlider({
 
 --Cape
 local WCamera = workspace.CurrentCamera
-local CapeSec = VisualWindow:DrawSection({Name="Cape", Position="right"})
+local CapeSec = VisualWindow:DrawSection({Name="Cape"})
 local DefaultCape = "SmokerV4/Assets/Capes/Default.png"
 local tex, part, mot = DefaultCape, nil, nil
 
@@ -1370,45 +1356,8 @@ CapeSec:AddColorPicker({
 	end
 })
 
---Happy Birthday / Balloon
-local BalloonSec = FunnyWindow:DrawSection({Name = "Balloon", Position = "left"})
-local BalloonVal = 1
-
-local function updBalloons()
-    if BalloonVar then
-        LocalPlayer.BalloonsAmount.Value = BalloonVal
-	else
-        LocalPlayer.BalloonsAmount.Value = 0
-    end
-end
-
-local BalloonToggle = BalloonSec:AddToggle({
-    Name = "Balloon",
-    Flag = "Balloon",
-    Default = false,
-    Callback = function(state)
-        BalloonVar = state
-        updBalloons()
-    end
-})
-
-BalloonSec:AddSlider({
-    Name = "Balloons",
-    Flag = "Balloons",
-    Default = 1,
-    Min = 1,
-    Max = 10,
-    Callback = function(value)
-        BalloonVal = value
-        updBalloons()
-    end
-})
-
-BalloonToggle.Link:AddHelper({Text = "Pop."})
-BalloonSec:AddParagraph({Title = "Balloon!", Content = "Keep in mind this is useless."})
-
 --Damage Indicator
-local DamageSec = VisualWindow:DrawSection({Name = "Damage Indicator", Position = "left"})
+local DamageSec = VisualWindow:DrawSection({Name = "Damage Indicator"})
 local DDColor = Color3.fromRGB(255, 255, 255)
 
 local function updColor()
@@ -1439,6 +1388,84 @@ DamageSec:AddColorPicker({
         DDColor = color
         updColor()
     end
+})
+
+--Spider
+local SpiderSec = VisualWindow:DrawSection({Name = "Spider"})
+
+local spd = 30
+local mode = "Velocity"
+local con
+local clamp = 120
+local ray = RaycastParams.new()
+ray.RespectCanCollide = true
+
+local function step(dt)
+	if not SpiderVar then return end
+	local c = LocalPlayer.Character
+	if not c or not c:FindFirstChild("HumanoidRootPart") or not c:FindFirstChild("Humanoid") then return end
+
+	local r = c.HumanoidRootPart
+	local h = c.Humanoid
+	local dir = h.MoveDirection * 2.5
+	local hip = h.HipHeight
+	local pos = r.Position - Vector3.new(0, hip - .5, 0)
+	local hit = workspace:Raycast(pos, dir, ray)
+
+	if not hit then
+		r.Velocity = Vector3.new(r.Velocity.X, math.clamp(r.Velocity.Y, -clamp, clamp), r.Velocity.Z)
+		return
+	end
+
+	if hit.Normal.Y == 0 then
+		h:ChangeState(Enum.HumanoidStateType.Climbing)
+		r.Velocity = Vector3.new(r.Velocity.X, 0, r.Velocity.Z)
+		if mode == "Velocity" then
+			r.Velocity += Vector3.new(0, spd, 0)
+		elseif mode == "CFrame" then
+			r.CFrame += Vector3.new(0, spd * dt, 0)
+		elseif mode == "Impulse" then
+			r:ApplyImpulse(Vector3.new(0, spd, 0) * r.AssemblyMass)
+		end
+	end
+end
+
+local function start()
+	if con then con:Disconnect() end
+	con = RunService.PreSimulation:Connect(step)
+end
+
+local function stop()
+	if con then con:Disconnect() con = nil end
+end
+
+SpiderSec:AddToggle({
+	Name = "Spider",
+	Flag = "SpiderToggle",
+	Default = false,
+	Callback = function(s)
+		SpiderVar = s
+		if s then start() else stop() end
+	end
+})
+
+SpiderSec:AddDropdown({
+	Name = "Mode",
+	Values = {"Velocity","Impulse","CFrame"},
+	Default = "Velocity",
+	Callback = function(v)
+		mode = v
+	end
+})
+
+SpiderSec:AddSlider({
+	Name = "Climb Speed",
+	Min = 10,
+	Max = 50,
+	Default = 30,
+	Callback = function(v)
+		spd = v
+	end
 })
 
 -- Settings
