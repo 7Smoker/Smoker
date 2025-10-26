@@ -50,15 +50,31 @@ blk() task.spawn(function() while true do task.wait(20) blk() end end)
 
 local function run(u) local c=g(u) if c then pcall(loadstring(c)) return true end end
 local function grab(p,lp)
-    local d=g(A..p) if not d then return end
-    for _,v in ipairs(G:JSONDecode(d)) do
+    local d=g(A..p) 
+    if not d then return end
+    
+    local success, decoded_data = pcall(G.JSONDecode, G, d)
+    if not success or type(decoded_data) ~= "table" then
+        return 
+    end
+
+    for _,v in ipairs(decoded_data) do
         local pa=lp.."/"..v.name
         if v.type=="file" then
             if not isfile(pa) then
                 local c=g(v.download_url)
-                if c then local t=string.split(pa,"/") table.remove(t) local dir=table.concat(t,"/") if not isfolder(dir) then makefolder(dir) end writefile(pa,c) end
+                if c then 
+                    local t=string.split(pa,"/") 
+                    table.remove(t) 
+                    local dir=table.concat(t,"/") 
+                    if not isfolder(dir) then makefolder(dir) end 
+                    writefile(pa,c) 
+                end
             end
-        else f(pa) grab(p.."/"..v.name,pa) end
+        else 
+            f(pa) 
+            grab(p.."/"..v.name,pa) 
+        end
     end
 end
 
