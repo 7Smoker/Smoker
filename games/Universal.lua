@@ -1,17 +1,17 @@
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/4lpaca-pin/CompKiller/refs/heads/main/src/source.luau"))();
 local Notify = Library.newNotify();
 
---Config
+--[[ Config ]]--
 local ConfigManager = Library:ConfigManager({Directory = "SmokerV4/games", Config = "Universal"});
 Library:Loader(getcustomasset("SmokerV4/Assets/newlogo.png"), 2.5):yield()
 
--- Window --
+-- [[ Window ]] --
 local SmokerV4 = Library.new({Name="Universal",Keybind="RightShift",Logo=getcustomasset("SmokerV4/Assets/icon.png"),Scale=Library.Scale.Window,TextSize=15})
 
--- Notification --
+-- [[ Notification ]] --
 Notify.new({Title = "SmokerV4",Content = "Thank you for use this script!", Duration = 10, Icon = getcustomasset("SmokerV4/Assets/icon.png")});
 
--- Watermark --
+-- [[ Watermark ]] --
 local Watermark = SmokerV4:Watermark();
 Watermark:AddText({Icon = "user",Text = game.Players.LocalPlayer.Name});
 local Time = Watermark:AddText({Icon = "timer",Text = "TIME"});
@@ -24,14 +24,15 @@ task.spawn(function()
 	end
 end)
 
---Services
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local LocalPlayer = Players.LocalPlayer
-local Lighting = game:GetService("Lighting")
+-- [[ Services ]] --
+local plrs = game:GetService("Players")
+local runservice = game:GetService("RunService")
+local lplr = plrs.LocalPlayer
+local lighting = game:GetService("Lighting")
+local InputService = game:GetService("UserInputService")
 local WCamera = workspace.CurrentCamera
 
--- Windows --
+-- [[ Windows ]] --
 SmokerV4:DrawCategory({Name = "Smoker"});
 
 local CombatWindow = SmokerV4:DrawTab({Name = "Combat", Icon = "lucide-swords", EnableScrolling = true});
@@ -276,20 +277,13 @@ task.spawn(function()
 end)
 
 --NameTags
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local LocalPlayer = Players.LocalPlayer
-
-local NameTagsSec = VisualWindow:DrawSection({
-    Name = "NameTag",
-    Position = "left"
-})
+local NameTagsSec = VisualWindow:DrawSection({Name = "NameTag",Position = "left"})
 
 local connections = {}
 local tagColor = Color3.fromRGB(0, 255, 140)
 
 local function createNameTag(player)
-    if player == LocalPlayer then return end
+    if player == lplr then return end
     if connections[player] then
         for _, c in pairs(connections[player]) do
             c:Disconnect()
@@ -323,7 +317,7 @@ local function createNameTag(player)
         textLabel.TextColor3 = tagColor
         textLabel.Text = ""
 
-        local renderConnection = RunService.RenderStepped:Connect(function()
+        local renderConnection = runservice.RenderStepped:Connect(function()
             if not NameTagsVar or humanoid.Health <= 0 then
                 textLabel.Text = ""
                 return
@@ -335,9 +329,9 @@ local function createNameTag(player)
             local maxHp = math.floor(humanoid.MaxHealth)
             local distance = 0
 
-            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            if lplr.Character and lplr.Character:FindFirstChild("HumanoidRootPart") then
                 distance = math.floor(
-                    (LocalPlayer.Character.HumanoidRootPart.Position - head.Position).Magnitude
+                    (lplr.Character.HumanoidRootPart.Position - head.Position).Magnitude
                 )
             end
 
@@ -378,7 +372,7 @@ local NameTagsToggle = NameTagsSec:AddToggle({
     Callback = function(enabled)
         NameTagsVar = enabled
         if enabled then
-            for _, player in pairs(Players:GetPlayers()) do
+            for _, player in pairs(plrs:GetPlayers()) do
                 createNameTag(player)
             end
         else
@@ -396,13 +390,13 @@ NameTagsSec:AddColorPicker({
     end
 })
 
-Players.PlayerAdded:Connect(function(player)
+plrs.PlayerAdded:Connect(function(player)
     if NameTagsVar then
         createNameTag(player)
     end
 end)
 
-Players.PlayerRemoving:Connect(function(player)
+plrs.PlayerRemoving:Connect(function(player)
     if connections[player] then
         for _, c in pairs(connections[player]) do
             c:Disconnect()
@@ -416,15 +410,15 @@ local VibeSec = VisualWindow:DrawSection({Name = "Vibe",Position = "right"})
 local vibeColor = Color3.fromRGB(0, 85, 255)
 local function setVibe(state)
     if state then
-        Lighting.TimeOfDay = "00:00:00"
-        Lighting.Ambient = vibeColor
-        Lighting.OutdoorAmbient = Color3.fromRGB(0, 0, 0)
-        Lighting.Technology = Enum.Technology.Future
+        lighting.TimeOfDay = "00:00:00"
+        lighting.Ambient = vibeColor
+        lighting.OutdoorAmbient = Color3.fromRGB(0, 0, 0)
+        lighting.Technology = Enum.Technology.Future
     else
-        Lighting.TimeOfDay = "14:00:00"
-        Lighting.Ambient = Color3.fromRGB(127, 127, 127)
-        Lighting.OutdoorAmbient = Color3.fromRGB(127, 127, 127)
-        Lighting.Technology = Enum.Technology.Compatibility
+        lighting.TimeOfDay = "14:00:00"
+        lighting.Ambient = Color3.fromRGB(127, 127, 127)
+        lighting.OutdoorAmbient = Color3.fromRGB(127, 127, 127)
+        lighting.Technology = Enum.Technology.Compatibility
     end
 end
 
@@ -445,7 +439,7 @@ VibeSec:AddColorPicker({
     Callback = function(color)
         vibeColor = color
         if VibeVar then
-            Lighting.Ambient = color
+            lighting.Ambient = color
         end
     end
 })
@@ -454,12 +448,12 @@ VibeSec:AddColorPicker({
 local SpeedSec = MovementWindow:DrawSection({Name = "Speed", Position = "left"})
 
 local function setSpeed(value)
-    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-        LocalPlayer.Character.Humanoid.WalkSpeed = value
+    if lplr.Character and lplr.Character:FindFirstChild("Humanoid") then
+        lplr.Character.Humanoid.WalkSpeed = value
     end
 end
 
-LocalPlayer.CharacterAdded:Connect(function(char)
+lplr.CharacterAdded:Connect(function(char)
     local hum = char:WaitForChild("Humanoid", 5)
     if hum and SpeedVar2 then
         hum.WalkSpeed = SpeedVar
@@ -540,7 +534,7 @@ local function build(a)
 
 	task.spawn(function()
 		while CapeVar and mot and part do
-			local c = LocalPlayer.Character
+			local c = lplr.Character
 			if c and c:FindFirstChild("HumanoidRootPart") then
 				local v = math.min(c.HumanoidRootPart.Velocity.Magnitude,90)
 				mot.DesiredAngle = math.rad(6)+math.rad(v)+(v>1 and math.abs(math.cos(tick()*5))/3 or 0)
@@ -567,8 +561,8 @@ CapeSec:AddToggle({
 	Callback=function(v)
 		CapeVar=v
 		if v then
-			if LocalPlayer.Character then build(LocalPlayer.Character) end
-			LocalPlayer.CharacterAdded:Connect(function(c)
+			if lplr.Character then build(lplr.Character) end
+			lplr.CharacterAdded:Connect(function(c)
 				if CapeVar then task.wait(1) build(c) end
 			end)
 		else
@@ -588,7 +582,7 @@ CapeSec:AddDropdown({
 			tex=path
 			if part then
 				clear()
-				build(LocalPlayer.Character)
+				build(lplr.Character)
 			end
 		end
 	end
@@ -605,7 +599,7 @@ CapeSec:AddTextBox({
 			tex=v
 			if part then
 				clear()
-				build(LocalPlayer.Character)
+				build(lplr.Character)
 			end
 		end)
 	end

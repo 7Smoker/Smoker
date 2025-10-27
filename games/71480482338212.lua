@@ -1,72 +1,118 @@
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/4lpaca-pin/CompKiller/refs/heads/main/src/source.luau"))();
-local Notify = Library.newNotify();
+local Notify = Library.newNotify()
 
---Config
+-- [[ Config ]] --
 local ConfigManager = Library:ConfigManager({Directory = "SmokerV4/games", Config = "BedFight"});
 Library:Loader(getcustomasset("SmokerV4/Assets/newlogo.png"), 2.5):yield()
 
---Library
+-- [[ Loading ]] --
 local SmokerV4 = Library.new({Name="BedFight",Keybind="RightShift",Logo=getcustomasset("SmokerV4/Assets/icon.png"),Scale=Library.Scale.Window,TextSize=15})
 
---Notification
-Notify.new({Title = "SmokerV4",Content = "Thank you for use this script!", Duration = 10, Icon = getcustomasset("SmokerV4/Assets/icon.png")});
+-- [[ Notification ]] --
+Notify.new({Title = "SmokerV4",Content = "SmokerV4 script loaded successfully", Duration = 10, Icon = getcustomasset("SmokerV4/Assets/icon.png")});
 
---Watermark
-local Watermark = SmokerV4:Watermark();
-Watermark:AddText({Icon = "user",Text = game.Players.LocalPlayer.Name});
-local Time = Watermark:AddText({Icon = "timer",Text = "TIME"});
-Watermark:AddText({Icon = "clock",Text = Library:GetDate()});
-Watermark:AddText({Icon = "server",Text = Library.Version});
+-- [[ Watermark ]] --
+local watermark = SmokerV4:Watermark()
+
+watermark:AddText({
+	Icon = "user",
+	Text = game.Players.LocalPlayer.Name
+})
+
+local timeText = watermark:AddText({
+	Icon = "timer",
+	Text = "TIME"
+})
+
+watermark:AddText({
+	Icon = "clock",
+	Text = Library:GetDate()
+})
+
+watermark:AddText({
+	Icon = "server",
+	Text = Library.Version
+})
 
 task.spawn(function()
-	while true do task.wait()
-		Time:SetText(Library:GetTimeNow());
+	while task.wait(1) do
+		timeText:SetText(Library:GetTimeNow())
 	end
 end)
 
---Services
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local LocalPlayer = Players.LocalPlayer
-local Lighting = game:GetService("Lighting")
+-- [[ Services ]] --
+local plrs = game:GetService("Players")
+local runservice = game:GetService("RunService")
+local lplr = plrs.LocalPlayer
+local lighting = game:GetService("Lighting")
 local rs = game:GetService("ReplicatedStorage")
 local InputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
+local CoreGui = game:GetService("CoreGui")
+local tcs = game:GetService("TextChatService")
 
---Windows
-SmokerV4:DrawCategory({Name = "Smoker"});
+-- [[ Winows ]] --
+SmokerV4:DrawCategory({ Name = "Smoker" })
 
-local CombatWindow = SmokerV4:DrawTab({Name = "Combat", Icon = "lucide-swords", Type = "Single", EnableScrolling = true})
-local UtilityWindow = SmokerV4:DrawTab({Name = "Utility", Icon = "lucide-hammer", Type = "Single", EnableScrolling = true})
-local MovementWindow = SmokerV4:DrawTab({Name = "Movement", Icon = "lucide-layout-dashboard", Type = "Single", EnableScrolling = true})
-local VisualWindow = SmokerV4:DrawTab({Name = "Visual", Icon = "lucide-eye", Type = "Single", EnableScrolling = true})
+local CombatWindow = SmokerV4:DrawTab({
+	Name = "Combat",
+	Icon = "lucide-swords",
+	Type = "Single",
+	EnableScrolling = true
+})
 
---Vars
+local UtilityWindow = SmokerV4:DrawTab({
+	Name = "Utility",
+	Icon = "lucide-hammer",
+	Type = "Single",
+	EnableScrolling = true
+})
+
+local MovementWindow = SmokerV4:DrawTab({
+	Name = "Movement",
+	Icon = "lucide-layout-dashboard",
+	Type = "Single",
+	EnableScrolling = true
+})
+
+local VisualWindow = SmokerV4:DrawTab({
+	Name = "Visual",
+	Icon = "lucide-eye",
+	Type = "Single",
+	EnableScrolling = true
+})
+
+-- [[ Vars ]] --
 local NameTagsVar = false
 local VibeVar = false
-local KAVar,HLon,HUDon,UseDN,MoveHUD=false,false,false,false,false
-local HighlightVar = false
 local ScaffoldVar = false
 local ProjectAimVar = false
-local ProjectAimRange = 20
 local NukerVar = false
-local TeamCheckVar = false
-local TeamColorVar = false
 local VelocityVar = false
 local FOVVar = false
-local FOVVal = 70
 local AutoToxicVar = false
 local DisplayNameVar = false
 local CapeVar = false
 local SpeedVar = false
 local DmgColorVar = false
 local SpiderVar = false
+local KillAuraVar = false
+
+-- [[ Features Vars ]] --
+local HighlightVar = false
+local KAHudVar = false
+local UseDisplayKAVar = false
+local DragKAHUD = false
+local ProjectAimRange = 20
+local TeamCheckVar = false
+local TeamColorVar = false
+local FOVVal = 70
 local CustomAnimKAVar = false
 local AnimSpeed = 1
 local AnimRunning = false
 local KA = {HL=nil, HUD=nil, Config={Range=18, Delay=0.1}}
 
---Colors/Texts/Conns
+-- [[ Colors/Texts/Conns ]] --
 local KAHighlight = Color3.fromRGB(255, 0, 0)
 local wm, WatermarkVar = " | smxkev4", false
 local KillConns, BedConns, WinConns = {}, {}, {}
@@ -75,9 +121,7 @@ local HUDc=Color3.fromRGB(25,25,25)
 local CapeColor = Color3.fromRGB(0, 0, 0)
 local RestCFrame = CFrame.new(0,0,0)
 
---Hud
-local CoreGui = game:GetService("CoreGui")
-
+-- [[ Hud ]]
 local hudGui, listFrame, contentFrame, hudconnect
 local activeLabels = {}
 local HUDStyle = "Drop"
@@ -87,9 +131,10 @@ local HUDLabelColor = Color3.fromRGB(0, 255, 140)
 
 local ForHudVars = {
 	["Vibe"] = function() return VibeVar end,
+    ["KillAura"] = function() return KillAuraVar end,
     ["NameTags"] = function() return NameTagsVar end,
     ["ProjectAim"] = function() return ProjectAimVar end,
-    ["KillAura"] = function() return KAVar end,
+    ["KillAura"] = function() return KillAuraVar end,
     ["Scaffold"] = function() return ScaffoldVar end,
     ["Nuker"] = function() return NukerVar end,
     ["Velocity"] = function() return VelocityVar end,
@@ -248,7 +293,7 @@ local function ApplyColors()
 	end
 end
 
-local HudSec = VisualWindow:DrawSection({Name = "HUD Style",})
+local HudSec = VisualWindow:DrawSection({Name = "HUD Style"})
 
 HudSec:AddToggle({
 	Name = "HUD",
@@ -306,7 +351,7 @@ task.spawn(function()
 	end
 end)
 
---Nametags
+-- [[ NameTags ]] --
 local NameTagsSec = VisualWindow:DrawSection({Name = "NameTag"})
 
 local connections = {}
@@ -321,7 +366,7 @@ local function getTagColor(player)
 end
 
 local function createNameTag(player)
-    if player == LocalPlayer then return end
+    if player == lplr then return end
     if connections[player] then
         for _, c in pairs(connections[player]) do
             c:Disconnect()
@@ -355,13 +400,13 @@ local function createNameTag(player)
         textLabel.TextColor3 = getTagColor(player)
         textLabel.Text = ""
 
-        local renderConnection = RunService.RenderStepped:Connect(function()
+        local renderConnection = runservice.RenderStepped:Connect(function()
             if not NameTagsVar or humanoid.Health <= 0 then
                 textLabel.Text = ""
                 return
             end
 
-            local localTeam = LocalPlayer.Team
+            local localTeam = lplr.Team
             local targetTeam = player.Team
             if TeamCheckVar and localTeam and localTeam.Name ~= "Spectators" then
                 if localTeam == targetTeam then
@@ -376,8 +421,8 @@ local function createNameTag(player)
             local maxHp = math.floor(humanoid.MaxHealth)
             local distance = 0
 
-            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                distance = math.floor((LocalPlayer.Character.HumanoidRootPart.Position - head.Position).Magnitude)
+            if lplr.Character and lplr.Character:FindFirstChild("HumanoidRootPart") then
+                distance = math.floor((lplr.Character.HumanoidRootPart.Position - head.Position).Magnitude)
             end
 
             textLabel.Text = string.format("[%d/%d] %s [%dm]", hp, maxHp, player.Name, distance)
@@ -416,7 +461,7 @@ NameTagsSec:AddToggle({
     Callback = function(enabled)
         NameTagsVar = enabled
         if enabled then
-            for _, player in pairs(Players:GetPlayers()) do
+            for _, player in pairs(plrs:GetPlayers()) do
                 createNameTag(player)
             end
         else
@@ -452,13 +497,13 @@ NameTagsSec:AddColorPicker({
     end
 })
 
-Players.PlayerAdded:Connect(function(player)
+plrs.PlayerAdded:Connect(function(player)
     if NameTagsVar then
         createNameTag(player)
     end
 end)
 
-Players.PlayerRemoving:Connect(function(player)
+plrs.PlayerRemoving:Connect(function(player)
     if connections[player] then
         for _, c in pairs(connections[player]) do
             c:Disconnect()
@@ -467,20 +512,20 @@ Players.PlayerRemoving:Connect(function(player)
     end
 end)
 
---Vibe
+-- [[ Vibe ]] --
 local VibeSec = VisualWindow:DrawSection({Name = "Vibe"})
 local vibeColor = Color3.fromRGB(0, 85, 255)
 local function setVibe(state)
     if state then
-        Lighting.TimeOfDay = "00:00:00"
-        Lighting.Ambient = vibeColor
-        Lighting.OutdoorAmbient = Color3.fromRGB(0, 0, 0)
-        Lighting.Technology = Enum.Technology.Future
+        lighting.TimeOfDay = "00:00:00"
+        lighting.Ambient = vibeColor
+        lighting.OutdoorAmbient = Color3.fromRGB(0, 0, 0)
+        lighting.Technology = Enum.Technology.Future
     else
-        Lighting.TimeOfDay = "14:00:00"
-        Lighting.Ambient = Color3.fromRGB(127, 127, 127)
-        Lighting.OutdoorAmbient = Color3.fromRGB(127, 127, 127)
-        Lighting.Technology = Enum.Technology.Compatibility
+        lighting.TimeOfDay = "14:00:00"
+        lighting.Ambient = Color3.fromRGB(127, 127, 127)
+        lighting.OutdoorAmbient = Color3.fromRGB(127, 127, 127)
+        lighting.Technology = Enum.Technology.Compatibility
     end
 end
 
@@ -501,12 +546,12 @@ VibeSec:AddColorPicker({
     Callback = function(color)
         vibeColor = color
         if VibeVar then
-            Lighting.Ambient = color
+            lighting.Ambient = color
         end
     end
 })
 
---KillAura
+-- [[ KillAura ]] --
 local KASec = CombatWindow:DrawSection({Name = "KillAura"})
 
 local Rem = rs:WaitForChild("Remotes"):WaitForChild("ItemsRemotes")
@@ -532,14 +577,14 @@ local Animations = {
 
 local function swordequip()
     for _,s in ipairs(SwordList) do
-        if LocalPlayer.Backpack:FindFirstChild(s) then return s end
-        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild(s) then return s end
+        if lplr.Backpack:FindFirstChild(s) then return s end
+        if lplr.Character and lplr.Character:FindFirstChild(s) then return s end
     end
 end
 
 local function autoequipkas()
     for _,s in ipairs(SwordList) do
-        if LocalPlayer.Backpack:FindFirstChild(s) then
+        if lplr.Backpack:FindFirstChild(s) then
             Equip:FireServer(s)
             task.wait(0.1)
             return s
@@ -548,15 +593,15 @@ local function autoequipkas()
 end
 
 local function nearplayerka()
-    local char = LocalPlayer.Character
+    local char = lplr.Character
     local root = char and char:FindFirstChild("HumanoidRootPart")
     if not root then return end
     local nearest, dist = nil, math.huge
-    for _,p in ipairs(Players:GetPlayers()) do
-        if p~=LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+    for _,p in ipairs(plrs:GetPlayers()) do
+        if p~=lplr and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
             local hum = p.Character:FindFirstChild("Humanoid")
             if hum and hum.Health>0 and (not _G.isWhitelisted or not _G.isWhitelisted(p)) then
-                local lt, tt = LocalPlayer.Team, p.Team
+                local lt, tt = lplr.Team, p.Team
                 if not lt or lt~=tt or lt.Name=="Spectators" then
                     local d = (p.Character.HumanoidRootPart.Position - root.Position).Magnitude
                     if d<dist and d<=KA.Config.Range then dist,nearest=d,p end
@@ -568,7 +613,7 @@ local function nearplayerka()
 end
 
 local function setHL(t)
-    if not HLon or not KAVar then if KA.HL then KA.HL:Destroy() KA.HL=nil end return end
+    if not HighlightVar or not KillAuraVar then if KA.HL then KA.HL:Destroy() KA.HL=nil end return end
     if not t or not t.Character then if KA.HL then KA.HL:Destroy() KA.HL=nil end return end
     if KA.HL and KA.HL.Adornee~=t.Character then KA.HL:Destroy() KA.HL=nil end
     if not KA.HL then
@@ -617,14 +662,14 @@ local function buildHUD()
     Instance.new("UICorner", hp)
     local drag,sPos,sFrame
     f.InputBegan:Connect(function(i)
-        if not MoveHUD then return end
+        if not DragKAHUD then return end
         if i.UserInputType==Enum.UserInputType.MouseButton1 then drag,sPos,sFrame=true,i.Position,f.Position end
     end)
     InputService.InputEnded:Connect(function(i)
         if i.UserInputType==Enum.UserInputType.MouseButton1 then drag=false end
     end)
     InputService.InputChanged:Connect(function(i)
-        if drag and MoveHUD and i.UserInputType==Enum.UserInputType.MouseMovement then
+        if drag and DragKAHUD and i.UserInputType==Enum.UserInputType.MouseMovement then
             local delta=i.Position-sPos
             f.Position=UDim2.new(sFrame.X.Scale,sFrame.X.Offset+delta.X,sFrame.Y.Scale,sFrame.Y.Offset+delta.Y)
         end
@@ -636,12 +681,12 @@ end
 local function updHUD(t)
     if not KA.HUD then return end
     local ui=KA.HUD
-    if not t or not t.Character or not t.Character:FindFirstChild("Humanoid") or not KAVar then
+    if not t or not t.Character or not t.Character:FindFirstChild("Humanoid") or not KillAuraVar then
         ui.Frame.Visible=false
         return
     end
     local h=t.Character.Humanoid
-    local name=UseDN and t.DisplayName or t.Name
+    local name=UseDisplayKAVar and t.DisplayName or t.Name
     local ratio=math.clamp(h.Health/h.MaxHealth,0,1)
     ui.Frame.Visible=true
     ui.Text.Text=name
@@ -653,7 +698,7 @@ end
 local function playAnimation(animSequence,speed)
     if not animSequence or #animSequence<2 then return end
     AnimRunning=true
-    while AnimRunning and KAVar and nearplayerka() do
+    while AnimRunning and KillAuraVar and nearplayerka() do
         for i=1,#animSequence-1 do
             local startFrame=animSequence[i].CFrame
             local endFrame=animSequence[i+1].CFrame
@@ -670,17 +715,17 @@ local function playAnimation(animSequence,speed)
 end
 
 KASec:AddToggle({Name="KillAura", Flag="KA_Toggle", Default=false, Callback=function(state)
-    KAVar=state
+    KillAuraVar=state
     if state then
         task.spawn(function()
-            while KAVar do
+            while KillAuraVar do
                 local s=autoequipkas()
                 if not s then s=swordequip() end
                 local t=nearplayerka()
                 if s and t then
                     Hit:FireServer(t.Character,s)
                     setHL(t)
-                    if HUDon then updHUD(t) end
+                    if KAHudVar then updHUD(t) end
                     if CustomAnimKAVar and Animations[SelectedAnim] then
                         task.spawn(function() playAnimation(Animations[SelectedAnim],AnimSpeed) end)
                     else
@@ -688,7 +733,7 @@ KASec:AddToggle({Name="KillAura", Flag="KA_Toggle", Default=false, Callback=func
                     end
                 else
                     setHL(nil)
-                    if HUDon then updHUD(nil) end
+                    if KAHudVar then updHUD(nil) end
                     AnimRunning=false
                     swordMotor.C0=RestCFrame
                 end
@@ -702,12 +747,12 @@ KASec:AddToggle({Name="KillAura", Flag="KA_Toggle", Default=false, Callback=func
 end})
 
 KASec:AddSlider({Name="Range", Flag="KA_Range", Default=18, Min=8, Max=30, Increment=1, Callback=function(v) KA.Config.Range=v<10 and 10 or v end})
-KASec:AddToggle({Name="Target HUD", Flag="KA_HUD", Default=false, Callback=function(v) HUDon=v if v then buildHUD() else if KA.HUD then KA.HUD.Frame:Destroy() KA.HUD=nil end end end})
-KASec:AddToggle({Name="Highlight", Flag="KA_HL", Default=false, Callback=function(v) HLon=v if not v then setHL(nil) end end})
+KASec:AddToggle({Name="Target HUD", Flag="KA_HUD", Default=false, Callback=function(v) KAHudVar=v if v then buildHUD() else if KA.HUD then KA.HUD.Frame:Destroy() KA.HUD=nil end end end})
+KASec:AddToggle({Name="Highlight", Flag="KA_HL", Default=false, Callback=function(v) HighlightVar=v if not v then setHL(nil) end end})
 KASec:AddColorPicker({Name="Highlight Color", Flag="KA_HLC", Default=HLc, Callback=function(c) HLc=c if KA.HL then KA.HL.FillColor=c end end})
 KASec:AddColorPicker({Name="HUD Color", Flag="KA_HC", Default=HUDc, Callback=function(c) HUDc=c if KA.HUD and KA.HUD.Frame then KA.HUD.Frame.BackgroundColor3=c end end})
-KASec:AddToggle({Name="Use DisplayName", Flag="KA_DN", Default=false, Callback=function(v) UseDN=v end})
-KASec:AddToggle({Name="Move HUD", Flag="KA_Move", Default=false, Callback=function(v) MoveHUD=v end})
+KASec:AddToggle({Name="Use DisplayName", Flag="KA_DN", Default=false, Callback=function(v) UseDisplayKAVar=v end})
+KASec:AddToggle({Name="Move HUD", Flag="KA_Move", Default=false, Callback=function(v) DragKAHUD=v end})
 
 KASec:AddToggle({
     Name = "Custom Animation",
@@ -740,17 +785,17 @@ KASec:AddSlider({
     end
 })
 
---Scaffold
+-- [[ Scaffold ]] --
 local ScaffoldSec = UtilityWindow:DrawSection({Name = "Scaffold", Risky = true})
 
 local PlaceRemote = rs:WaitForChild("Remotes"):WaitForChild("ItemsRemotes"):WaitForChild("PlaceBlock")
 local ScaffoldTask
 
 local function GetBlockName()
-    local Backpack = LocalPlayer:FindFirstChild("Backpack")
+    local Backpack = lplr:FindFirstChild("Backpack")
     if not Backpack then return nil end
     if Backpack:FindFirstChild("Fake Block") then return "Fake Block" end
-    local Team = LocalPlayer.Team
+    local Team = lplr.Team
     if Team and Team.Name and Team.Name ~= "Spectator" then
         local WoolName = Team.Name .. " Wool"
         if Backpack:FindFirstChild(WoolName) then
@@ -777,7 +822,7 @@ local function RoundVector(Vector)
 end
 
 local function PerformScaffold()
-    local Character = LocalPlayer.Character
+    local Character = lplr.Character
     if not Character then return end
     local Root = Character:FindFirstChild("HumanoidRootPart")
     if not Root then return end
@@ -817,7 +862,7 @@ ScaffoldSec:AddToggle({
     end
 })
 
---ProjectAim
+-- [[ ProjectAim ]] --
 local ProjectAimSec = CombatWindow:DrawSection({Name = "ProjectAim"})
 
 local ProjectAimToggle = ProjectAimSec:AddToggle({
@@ -830,11 +875,11 @@ local ProjectAimToggle = ProjectAimSec:AddToggle({
         local gravity = workspace.Gravity or 196.2
 
         local function getClosest()
-            if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
-            local root = LocalPlayer.Character.HumanoidRootPart
+            if not lplr.Character or not lplr.Character:FindFirstChild("HumanoidRootPart") then return end
+            local root = lplr.Character.HumanoidRootPart
             local nearest, dist = nil, math.huge
-            for _, p in ipairs(Players:GetPlayers()) do
-                if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 and (not _G.isWhitelisted or not _G.isWhitelisted(p)) then
+            for _, p in ipairs(plrs:GetPlayers()) do
+                if p ~= lplr and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 and (not _G.isWhitelisted or not _G.isWhitelisted(p)) then
                     local d = (p.Character.HumanoidRootPart.Position - root.Position).Magnitude
                     if d < dist and d <= (ProjectAimRange or 35) then
                         dist, nearest = d, p
@@ -850,7 +895,7 @@ local ProjectAimToggle = ProjectAimSec:AddToggle({
             if not tRoot then return end
             local vel = tRoot.Velocity
             local pos = tRoot.Position
-            local dist = (pos - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+            local dist = (pos - lplr.Character.HumanoidRootPart.Position).Magnitude
             local travelTime = dist / speed
             local predicted = pos + vel * travelTime + Vector3.new(0, -0.5 * gravity * (travelTime ^ 2) / speed, 0)
             return predicted
@@ -858,15 +903,15 @@ local ProjectAimToggle = ProjectAimSec:AddToggle({
 
         task.spawn(function()
             while ProjectAimVar do
-                local char = LocalPlayer.Character
+                local char = lplr.Character
                 if char and char:FindFirstChild("HumanoidRootPart") then
                     local root = char.HumanoidRootPart
                     local target = getClosest()
                     if target then
                         local weapon, projId, speed
-                        if char:FindFirstChild("Bow") or LocalPlayer.Backpack:FindFirstChild("Bow") then
+                        if char:FindFirstChild("Bow") or lplr.Backpack:FindFirstChild("Bow") then
                             weapon, projId, speed = "Bow", 1, 500
-                        elseif char:FindFirstChild("Crossbow") or LocalPlayer.Backpack:FindFirstChild("Crossbow") then
+                        elseif char:FindFirstChild("Crossbow") or lplr.Backpack:FindFirstChild("Crossbow") then
                             weapon, projId, speed = "Crossbow", 1, 700
                         end
 
@@ -905,7 +950,7 @@ ProjectAimSec:AddSlider({
 
 ProjectAimToggle.Link:AddHelper({Text = "THIS FEATURE IS IN BETA!"})
 
---LongJump
+-- [[ LongJump ]] --
 local LongJumpSection = MovementWindow:DrawSection({ Name = "LongJump"})
 
 local keybindKey = Enum.KeyCode.Q
@@ -937,7 +982,7 @@ local function performLongJump()
 		return
 	end
 
-	local character = playerContainer:FindFirstChild(LocalPlayer.Name)
+	local character = playerContainer:FindFirstChild(lplr.Name)
 	if not character then
 		return
 	end
@@ -984,7 +1029,7 @@ InputService.InputBegan:Connect(function(input, processed)
 	end
 end)
 
---Nuker
+-- [[ Nuker ]] --
 local NukerSec = UtilityWindow:DrawSection({Name="Nuker"})
 local MineBlock = rs.Remotes.ItemsRemotes.MineBlock
 
@@ -994,8 +1039,8 @@ local function getBed(r)
     local nearest, dist
     for _, b in ipairs(c:GetChildren()) do
         local hb = b:FindFirstChild("BedHitbox")
-        if hb and LocalPlayer.Character and LocalPlayer.Character.PrimaryPart then
-            local d = (LocalPlayer.Character.PrimaryPart.Position - hb.Position).Magnitude
+        if hb and lplr.Character and lplr.Character.PrimaryPart then
+            local d = (lplr.Character.PrimaryPart.Position - hb.Position).Magnitude
             if d <= r and (not dist or d < dist) then
                 nearest, dist = hb, d
             end
@@ -1005,8 +1050,8 @@ local function getBed(r)
 end
 
 local function getPick()
-    for _, i in ipairs(LocalPlayer.Backpack:GetChildren()) do if i.Name:lower():find("pickaxe") then return i end end
-    if LocalPlayer.Character then for _, i in ipairs(LocalPlayer.Character:GetChildren()) do if i.Name:lower():find("pickaxe") then return i end end end
+    for _, i in ipairs(lplr.Backpack:GetChildren()) do if i.Name:lower():find("pickaxe") then return i end end
+    if lplr.Character then for _, i in ipairs(lplr.Character:GetChildren()) do if i.Name:lower():find("pickaxe") then return i end end end
 end
 
 local function mine(pick, hb)
@@ -1027,7 +1072,7 @@ NukerSec:AddToggle({
         if state then task.spawn(function()
             while NukerVar do
                 task.wait(0.1)
-                if not LocalPlayer.Character or not LocalPlayer.Character.PrimaryPart then continue end
+                if not lplr.Character or not lplr.Character.PrimaryPart then continue end
                 local hb = getBed(30)
                 local pick = getPick()
                 if hb and pick then mine(pick,hb) end
@@ -1036,7 +1081,7 @@ NukerSec:AddToggle({
     end
 })
 
---Velocity
+-- [[ Velocity ]] --
 local VeloSec = MovementWindow:DrawSection({Name = "VelocityPatch"})
 local VeloConn
 local SavedVelo = {}
@@ -1071,7 +1116,7 @@ VeloSec:AddToggle({
     end
 })
 
---AutoToxic
+-- [[ AutoToxic ]] --
 local AutoToxicSec = UtilityWindow:DrawSection({Name = "AutoToxic"})
 
 local Kills = {"L {name}", "Your pvp is terrible {name}", "Go back to sleep {name}", "{name} got cooked"}
@@ -1080,7 +1125,6 @@ local Wins  = {"too easy", "ez ggs", "free win"}
 
 local function say(msg)
 	if WatermarkVar then msg = msg .. wm end
-	local tcs = game:GetService("TextChatService")
 	if tcs and tcs.ChatInputBarConfiguration and tcs.ChatInputBarConfiguration.TargetTextChannel then
 		tcs.ChatInputBarConfiguration.TargetTextChannel:SendAsync(msg)
 	else
@@ -1096,20 +1140,20 @@ local function rnd(tbl, name)
 end
 
 local function getName(victim)
-	local plr = game.Players:FindFirstChild(victim)
+	local plr = plrs:FindFirstChild(victim)
 	if not plr then return victim end
 	return DisplayNameVar and plr.DisplayName or plr.Name
 end
 
 local function onKillLog(killer, victim)
-	if killer ~= LocalPlayer.Name then return end
+	if killer ~= lplr.Name then return end
 	if not victim then return end
 	say(rnd(Kills, getName(victim)))
 end
 
 AutoToxicSec:AddToggle({
 	Name = "AutoToxic Kills",
-	Flag = "AutoToxic Kills",
+	Flag = "AutoToxicKills",
 	Callback = function(v)
 		if v then
 			table.insert(KillConns, rs.Remotes.KillLog.OnClientEvent:Connect(onKillLog))
@@ -1122,10 +1166,10 @@ AutoToxicSec:AddToggle({
 
 AutoToxicSec:AddToggle({
 	Name = "AutoToxic Beds",
-	Flag = "AutoToxic Beds",
+	Flag = "AutoToxicBeds",
 	Callback = function(v)
 		if v then
-			table.insert(BedConns, LocalPlayer.Stats['Total Beds Broken']:GetPropertyChangedSignal('Value'):Connect(function()
+			table.insert(BedConns, lplr.Stats['Total Beds Broken']:GetPropertyChangedSignal('Value'):Connect(function()
 				say(rnd(Beds, "their"))
 			end))
 		else
@@ -1137,10 +1181,10 @@ AutoToxicSec:AddToggle({
 
 AutoToxicSec:AddToggle({
 	Name = "AutoToxic Win",
-	Flag = "AutoToxic Win",
+	Flag = "AutoToxicWin",
 	Callback = function(v)
 		if v then
-			table.insert(WinConns, LocalPlayer.Stats.Wins.Changed:Connect(function()
+			table.insert(WinConns, lplr.Stats.Wins.Changed:Connect(function()
 				say(rnd(Wins))
 			end))
 		else
@@ -1160,13 +1204,13 @@ AutoToxicSec:AddToggle({
 
 AutoToxicSec:AddToggle({
 	Name = "Display Name",
-	Flag = "Display Name",
+	Flag = "DisplayName",
 	Callback = function(v)
 		DisplayNameVar = v
 	end
 })
 
---Speed
+-- [[ Speed ]] --
 local SpeedSec = MovementWindow:DrawSection({Name="Speed", Risky = true})
 local conns, method, bounce = {}, "Classic", false
 
@@ -1176,15 +1220,15 @@ local stop = function()
 	sbounce()
 	for _, c in ipairs(conns) do if typeof(c)=="RBXScriptConnection" then c:Disconnect() end end
 	table.clear(conns)
-	local h = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+	local h = lplr.Character and lplr.Character:FindFirstChildOfClass("Humanoid")
 	if h then h.WalkSpeed = 16 end
 end
 
 local start = function()
-	local hum = function() local c=LocalPlayer.Character return c and c:FindFirstChildOfClass("Humanoid") end
+	local hum = function() local c=lplr.Character return c and c:FindFirstChildOfClass("Humanoid") end
 	if method=="Classic" then
 		local keepRunning = true
-		table.insert(conns, RunService.Heartbeat:Connect(function()
+		table.insert(conns, runservice.Heartbeat:Connect(function()
 			if not SpeedVar or method ~= "Classic" then return end
 			local h = hum()
 			if h and h.WalkSpeed ~= 35 then
@@ -1192,8 +1236,8 @@ local start = function()
 			end
 		end))
 	elseif method=="Velocity" then
-		table.insert(conns, RunService.Heartbeat:Connect(function()
-			local c = LocalPlayer.Character
+		table.insert(conns, runservice.Heartbeat:Connect(function()
+			local c = lplr.Character
 			if not c or not c.PrimaryPart then return end
 			local h = hum()
 			if not h then return end
@@ -1239,7 +1283,7 @@ SpeedSec:AddDropdown({
 	end
 })
 
---FOV
+-- [[ FOV ]] --
 local FOVSec = VisualWindow:DrawSection({Name = "FOV"})
 
 FOVSec:AddToggle({
@@ -1270,7 +1314,7 @@ FOVSec:AddSlider({
     end
 })
 
---Cape
+-- [[ Cape ]] --
 local WCamera = workspace.CurrentCamera
 local CapeSec = VisualWindow:DrawSection({Name="Cape"})
 local DefaultCape = "SmokerV4/Assets/Capes/Default.png"
@@ -1316,7 +1360,7 @@ local function build(a)
 
 	task.spawn(function()
 		while CapeVar and mot and part do
-			local c = LocalPlayer.Character
+			local c = lplr.Character
 			if c and c:FindFirstChild("HumanoidRootPart") then
 				local v = math.min(c.HumanoidRootPart.Velocity.Magnitude,90)
 				mot.DesiredAngle = math.rad(6)+math.rad(v)+(v>1 and math.abs(math.cos(tick()*5))/3 or 0)
@@ -1354,8 +1398,8 @@ CapeSec:AddToggle({
 	Callback=function(v)
 		CapeVar=v
 		if v then
-			if LocalPlayer.Character then build(LocalPlayer.Character) end
-			LocalPlayer.CharacterAdded:Connect(function(c)
+			if lplr.Character then build(lplr.Character) end
+			lplr.CharacterAdded:Connect(function(c)
 				if CapeVar then task.wait(1) build(c) end
 			end)
 		else
@@ -1375,7 +1419,7 @@ CapeSec:AddDropdown({
 			tex=path
 			if part then
 				clear()
-				build(LocalPlayer.Character)
+				build(lplr.Character)
 			end
 		end
 	end
@@ -1391,13 +1435,13 @@ CapeSec:AddColorPicker({
 	end
 })
 
---Damage Indicator
+-- [[ Damage Indicator ]] --
 local DamageSec = VisualWindow:DrawSection({Name = "Damage Indicator"})
 local DDColor = Color3.fromRGB(255, 255, 255)
 
 local function updColor()
     local success, label = pcall(function()
-        return LocalPlayer.PlayerScripts:WaitForChild("DamageIndicatorScript"):WaitForChild("DamageIndicatorGui"):WaitForChild("TextLabel")
+        return lplr.PlayerScripts:WaitForChild("DamageIndicatorScript"):WaitForChild("DamageIndicatorGui"):WaitForChild("TextLabel")
     end)
     if not success or not label then return end
 
@@ -1424,7 +1468,7 @@ DamageSec:AddColorPicker({
     end
 })
 
---Spider
+-- [[ Spider ]] --
 local SpiderSec = VisualWindow:DrawSection({Name = "Spider"})
 
 local spd = 30
@@ -1436,7 +1480,7 @@ ray.RespectCanCollide = true
 
 local function step(dt)
 	if not SpiderVar then return end
-	local c = LocalPlayer.Character
+	local c = lplr.Character
 	if not c or not c:FindFirstChild("HumanoidRootPart") or not c:FindFirstChild("Humanoid") then return end
 
 	local r = c.HumanoidRootPart
@@ -1466,7 +1510,7 @@ end
 
 local function start()
 	if con then con:Disconnect() end
-	con = RunService.PreSimulation:Connect(step)
+	con = runservice.PreSimulation:Connect(step)
 end
 
 local function stop()
@@ -1504,7 +1548,7 @@ SpiderSec:AddSlider({
 	end
 })
 
--- Settings
+-- [[ Settings ]] --
 local SettingsWindow = SmokerV4:DrawTab({
     Icon = "settings-3",
     Name = "Settings",
