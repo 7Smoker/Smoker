@@ -1187,8 +1187,8 @@ local start = function()
 		table.insert(conns, RunService.Heartbeat:Connect(function()
 			if not SpeedVar or method ~= "Classic" then return end
 			local h = hum()
-			if h and h.WalkSpeed ~= 38 then
-				h.WalkSpeed = 38
+			if h and h.WalkSpeed ~= 35 then
+				h.WalkSpeed = 35
 			end
 		end))
 	elseif method=="Velocity" then
@@ -1199,7 +1199,7 @@ local start = function()
 			if not h then return end
 			local d = h.MoveDirection
 			local v = c.PrimaryPart.AssemblyLinearVelocity
-			c.PrimaryPart.AssemblyLinearVelocity = Vector3.new(d.X*42.5, v.Y, d.Z*42.5)
+			c.PrimaryPart.AssemblyLinearVelocity = Vector3.new(d.X*40, v.Y, d.Z*40)
 		end))
 	elseif method=="Bounce" then
 		bounce = true
