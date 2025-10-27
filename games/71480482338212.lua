@@ -2,11 +2,11 @@ local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/4lpac
 local Notify = Library.newNotify();
 
 --Config
-local ConfigManager = Library:ConfigManager({Directory = "SmokerV4/games", Config = "Bedwarz"});
+local ConfigManager = Library:ConfigManager({Directory = "SmokerV4/games", Config = "BedFight"});
 Library:Loader(getcustomasset("SmokerV4/Assets/newlogo.png"), 2.5):yield()
 
 --Library
-local SmokerV4 = Library.new({Name="Bedwarz",Keybind="RightShift",Logo=getcustomasset("SmokerV4/Assets/icon.png"),Scale=Library.Scale.Window,TextSize=15})
+local SmokerV4 = Library.new({Name="BedFight",Keybind="RightShift",Logo=getcustomasset("SmokerV4/Assets/icon.png"),Scale=Library.Scale.Window,TextSize=15})
 
 --Notification
 Notify.new({Title = "SmokerV4",Content = "Thank you for use this script!", Duration = 10, Icon = getcustomasset("SmokerV4/Assets/icon.png")});
@@ -36,11 +36,10 @@ local TweenService = game:GetService("TweenService")
 --Windows
 SmokerV4:DrawCategory({Name = "Smoker"});
 
-local CombatWindow = SmokerV4:DrawTab({Name = "Combat", Icon = "lucide-swords", Type = "Single", EnableScrolling = true,});
-local UtilityWindow = SmokerV4:DrawTab({Name = "Utility", Icon = "lucide-hammer", Type = "Single", EnableScrolling = true,});
-local MovementWindow = SmokerV4:DrawTab({Name = "Movement", Icon = "lucide-layout-dashboard", Type = "Single", EnableScrolling = true,});
-local VisualWindow = SmokerV4:DrawTab({Name = "Visual", Icon = "lucide-eye", Type = "Single", EnableScrolling = true,});
-local FunnyWindow = SmokerV4:DrawTab({Name = "Funny", Icon = "lucide-laugh", Type = "Single", EnableScrolling = true,});
+local CombatWindow = SmokerV4:DrawTab({Name = "Combat", Icon = "lucide-swords", Type = "Single", EnableScrolling = true})
+local UtilityWindow = SmokerV4:DrawTab({Name = "Utility", Icon = "lucide-hammer", Type = "Single", EnableScrolling = true})
+local MovementWindow = SmokerV4:DrawTab({Name = "Movement", Icon = "lucide-layout-dashboard", Type = "Single", EnableScrolling = true})
+local VisualWindow = SmokerV4:DrawTab({Name = "Visual", Icon = "lucide-eye", Type = "Single", EnableScrolling = true})
 
 --Vars
 local NameTagsVar = false
@@ -62,6 +61,10 @@ local CapeVar = false
 local SpeedVar = false
 local DmgColorVar = false
 local SpiderVar = false
+local CustomAnimKAVar = false
+local AnimSpeed = 1
+local AnimRunning = false
+local KA = {HL=nil, HUD=nil, Config={Range=18, Delay=0.1}}
 
 --Colors/Texts/Conns
 local KAHighlight = Color3.fromRGB(255, 0, 0)
@@ -70,6 +73,7 @@ local KillConns, BedConns, WinConns = {}, {}, {}
 local HLc=Color3.fromRGB(66,135,245)
 local HUDc=Color3.fromRGB(25,25,25)
 local CapeColor = Color3.fromRGB(0, 0, 0)
+local RestCFrame = CFrame.new(0,0,0)
 
 --Hud
 local CoreGui = game:GetService("CoreGui")
@@ -503,199 +507,238 @@ VibeSec:AddColorPicker({
 })
 
 --KillAura
-local KAsec = CombatWindow:DrawSection({Name="KillAura"})
+local KASec = CombatWindow:DrawSection({Name = "KillAura"})
 
-local curHL,HUD
-local r = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("ItemsRemotes"):WaitForChild("SwordHit")
-local sw = {"Wooden Sword","Stone Sword","Iron Sword","Diamond Sword","Emerald Sword"}
-local range = 18
+local Rem = rs:WaitForChild("Remotes"):WaitForChild("ItemsRemotes")
+local Hit = Rem:WaitForChild("SwordHit")
+local Equip = Rem:WaitForChild("EquipTool")
+local swordMotor = workspace.Camera.ViewModel:WaitForChild("Wooden Sword"):WaitForChild("ViewModelRootPart"):WaitForChild("RootMotor")
 
-local function sword()
-	for _, n in ipairs(sw) do
-		if LocalPlayer.Backpack:FindFirstChild(n) then return n end
-		if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild(n) then return n end
-	end
+local SwordList = {"Wooden Sword","Stone Sword","Iron Sword","Diamond Sword","Emerald Sword"}
+local SelectedAnim = "Default"
+
+local Animations = {
+    Default = {
+        {CFrame=CFrame.new(1,1,-1.5)*CFrame.Angles(math.rad(-30),math.rad(30),math.rad(1)),Time=0.1},
+        {CFrame=CFrame.new(1,1,-1.5)*CFrame.Angles(math.rad(-60),math.rad(30),math.rad(1)),Time=0.1},
+        {CFrame=CFrame.new(1,1,-1.5)*CFrame.Angles(math.rad(1),math.rad(1),math.rad(1)),Time=0.1},
+    },
+    Spin = {
+        {CFrame=CFrame.new(0,0,0),Time=0.1},
+        {CFrame=CFrame.Angles(0,math.rad(90),0),Time=0.1},
+        {CFrame=CFrame.Angles(0,math.rad(180),0),Time=0.1},
+    }
+}
+
+local function swordequip()
+    for _,s in ipairs(SwordList) do
+        if LocalPlayer.Backpack:FindFirstChild(s) then return s end
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild(s) then return s end
+    end
 end
 
-local function nearest()
-    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
-    local root = LocalPlayer.Character.HumanoidRootPart
-    local t, dist = nil, math.huge
+local function autoequipkas()
+    for _,s in ipairs(SwordList) do
+        if LocalPlayer.Backpack:FindFirstChild(s) then
+            Equip:FireServer(s)
+            task.wait(0.1)
+            return s
+        end
+    end
+end
 
-    for _, p in ipairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer 
-           and p.Character 
-           and p.Character:FindFirstChild("HumanoidRootPart") 
-           and p.Character:FindFirstChild("Humanoid") 
-           and p.Character.Humanoid.Health > 0 
-           and (not _G.isWhitelisted or not _G.isWhitelisted(p)) then
-
-            local lt, tt = LocalPlayer.Team, p.Team
-            if lt == nil or lt.Name == "Spectators" or lt ~= tt then
-                local d = (p.Character.HumanoidRootPart.Position - root.Position).Magnitude
-                if d < dist and d <= range then
-                    dist, t = d, p
+local function nearplayerka()
+    local char = LocalPlayer.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+    local nearest, dist = nil, math.huge
+    for _,p in ipairs(Players:GetPlayers()) do
+        if p~=LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+            local hum = p.Character:FindFirstChild("Humanoid")
+            if hum and hum.Health>0 and (not _G.isWhitelisted or not _G.isWhitelisted(p)) then
+                local lt, tt = LocalPlayer.Team, p.Team
+                if not lt or lt~=tt or lt.Name=="Spectators" then
+                    local d = (p.Character.HumanoidRootPart.Position - root.Position).Magnitude
+                    if d<dist and d<=KA.Config.Range then dist,nearest=d,p end
                 end
             end
         end
     end
-    return t
+    return nearest
 end
 
-local function hl(t)
-	if not HLon or not KAVar then 
-		if curHL then curHL:Destroy() curHL = nil end 
-		return 
-	end
-	if not t or not t.Character then 
-		if curHL then curHL:Destroy() curHL = nil end 
-		return 
-	end
-	if curHL and curHL.Adornee ~= t.Character then 
-		curHL:Destroy() curHL = nil 
-	end
-	if not curHL then
-		local h = Instance.new("Highlight")
-		h.Adornee = t.Character
-		h.FillColor = HLc
-		h.OutlineColor = Color3.new(0,0,0)
-		h.Parent = t.Character
-		curHL = h
-	else
-		curHL.FillColor = HLc
-	end
+local function setHL(t)
+    if not HLon or not KAVar then if KA.HL then KA.HL:Destroy() KA.HL=nil end return end
+    if not t or not t.Character then if KA.HL then KA.HL:Destroy() KA.HL=nil end return end
+    if KA.HL and KA.HL.Adornee~=t.Character then KA.HL:Destroy() KA.HL=nil end
+    if not KA.HL then
+        local h=Instance.new("Highlight")
+        h.Adornee=t.Character
+        h.FillColor=HLc
+        h.OutlineColor=Color3.new(0,0,0)
+        h.Parent=t.Character
+        KA.HL=h
+    else
+        KA.HL.FillColor=HLc
+    end
 end
 
-local function makeHUD()
-	local g = Instance.new("ScreenGui", game.CoreGui)
-	local f = Instance.new("Frame", g)
-	f.Size = UDim2.new(0,180,0,55)
-	f.Position = UDim2.new(0.5,-90,0.8,0)
-	f.BackgroundColor3 = HUDc
-	f.BackgroundTransparency = .2
-	f.BorderSizePixel = 0
-	Instance.new("UICorner", f).CornerRadius = UDim.new(0,8)
-
-	local i = Instance.new("ImageLabel", f)
-	i.Size = UDim2.new(0,28,0,28)
-	i.Position = UDim2.new(0,6,0,6)
-	i.BackgroundTransparency = 1
-	i.Image = "rbxthumb://type=AvatarHeadShot&id=1&w=48&h=48"
-	i.ScaleType = Enum.ScaleType.Fit
-
-	local n = Instance.new("TextLabel", f)
-	n.Size = UDim2.new(1,-45,0,25)
-	n.Position = UDim2.new(0,40,0,5)
-	n.BackgroundTransparency = 1
-	n.TextColor3 = Color3.new(1,1,1)
-	n.Font = Enum.Font.GothamBold
-	n.TextSize = 16
-	n.TextXAlignment = Enum.TextXAlignment.Left
-	n.Text = "No target"
-
-	local bg = Instance.new("Frame", f)
-	bg.Size = UDim2.new(1,-10,0,8)
-	bg.Position = UDim2.new(0,5,0,38)
-	bg.BackgroundColor3 = Color3.fromRGB(40,40,40)
-	bg.BorderSizePixel = 0
-	Instance.new("UICorner", bg)
-
-	local hp = Instance.new("Frame", bg)
-	hp.Size = UDim2.new(1,0,1,0)
-	hp.BackgroundColor3 = Color3.fromRGB(0,255,0)
-	hp.BorderSizePixel = 0
-	Instance.new("UICorner", hp)
-
-	local drag, stPos, stFrame
-	f.InputBegan:Connect(function(iu)
-		if not MoveHUD then return end
-		if iu.UserInputType == Enum.UserInputType.MouseButton1 then 
-			drag = true 
-			stPos = iu.Position 
-			stFrame = f.Position 
-		end
-	end)
-	game.UserInputService.InputEnded:Connect(function(iu) 
-		if iu.UserInputType == Enum.UserInputType.MouseButton1 then drag = false end 
-	end)
-	game.UserInputService.InputChanged:Connect(function(iu)
-		if drag and MoveHUD and iu.UserInputType == Enum.UserInputType.MouseMovement then
-			local d = iu.Position - stPos
-			f.Position = UDim2.new(stFrame.X.Scale, stFrame.X.Offset + d.X, stFrame.Y.Scale, stFrame.Y.Offset + d.Y)
-		end
-	end)
-
-	f.Visible = false
-	HUD = {F=f, N=n, HP=hp, I=i}
-end
-
-local function delHUD()
-	if HUD and HUD.F then
-		HUD.F:Destroy()
-		HUD = nil
-	end
+local function buildHUD()
+    local g=Instance.new("ScreenGui", game.CoreGui)
+    local f=Instance.new("Frame", g)
+    f.Size=UDim2.new(0,180,0,55)
+    f.Position=UDim2.new(.5,-90,.8,0)
+    f.BackgroundColor3=HUDc
+    f.BackgroundTransparency=.2
+    f.BorderSizePixel=0
+    Instance.new("UICorner", f).CornerRadius=UDim.new(0,8)
+    local img=Instance.new("ImageLabel", f)
+    img.Size=UDim2.new(0,28,0,28)
+    img.Position=UDim2.new(0,6,0,6)
+    img.BackgroundTransparency=1
+    local txt=Instance.new("TextLabel", f)
+    txt.Size=UDim2.new(1,-45,0,25)
+    txt.Position=UDim2.new(0,40,0,5)
+    txt.BackgroundTransparency=1
+    txt.TextColor3=Color3.new(1,1,1)
+    txt.Font=Enum.Font.GothamBold
+    txt.TextSize=16
+    txt.TextXAlignment=Enum.TextXAlignment.Left
+    local bg=Instance.new("Frame", f)
+    bg.Size=UDim2.new(1,-10,0,8)
+    bg.Position=UDim2.new(0,5,0,38)
+    bg.BackgroundColor3=Color3.fromRGB(40,40,40)
+    bg.BorderSizePixel=0
+    Instance.new("UICorner", bg)
+    local hp=Instance.new("Frame", bg)
+    hp.Size=UDim2.new(1,0,1,0)
+    hp.BackgroundColor3=Color3.fromRGB(0,255,0)
+    hp.BorderSizePixel=0
+    Instance.new("UICorner", hp)
+    local drag,sPos,sFrame
+    f.InputBegan:Connect(function(i)
+        if not MoveHUD then return end
+        if i.UserInputType==Enum.UserInputType.MouseButton1 then drag,sPos,sFrame=true,i.Position,f.Position end
+    end)
+    InputService.InputEnded:Connect(function(i)
+        if i.UserInputType==Enum.UserInputType.MouseButton1 then drag=false end
+    end)
+    InputService.InputChanged:Connect(function(i)
+        if drag and MoveHUD and i.UserInputType==Enum.UserInputType.MouseMovement then
+            local delta=i.Position-sPos
+            f.Position=UDim2.new(sFrame.X.Scale,sFrame.X.Offset+delta.X,sFrame.Y.Scale,sFrame.Y.Offset+delta.Y)
+        end
+    end)
+    f.Visible=false
+    KA.HUD={Frame=f, Text=txt, Img=img, HP=hp}
 end
 
 local function updHUD(t)
-	if not HUD then return end
-	if not t or not t.Character or not t.Character:FindFirstChild("Humanoid") or not KAVar then 
-		HUD.F.Visible = false 
-		return 
-	end
-	local h = t.Character.Humanoid
-	local name = UseDN and t.DisplayName or t.Name
-	local hp = math.clamp(h.Health / h.MaxHealth, 0, 1)
-	HUD.F.Visible = true
-	HUD.N.Text = name
-	HUD.I.Image = "rbxthumb://type=AvatarHeadShot&id=" .. t.UserId .. "&w=48&h=48"
-	HUD.F.BackgroundColor3 = HUDc
-	HUD.HP:TweenSize(UDim2.new(hp,0,1,0), "Out", "Quad", .1, true)
-	if hp > .5 then
-		HUD.HP.BackgroundColor3 = Color3.fromRGB(0,255,0)
-	elseif hp > .25 then
-		HUD.HP.BackgroundColor3 = Color3.fromRGB(255,200,0)
-	else
-		HUD.HP.BackgroundColor3 = Color3.fromRGB(255,0,0)
-	end
+    if not KA.HUD then return end
+    local ui=KA.HUD
+    if not t or not t.Character or not t.Character:FindFirstChild("Humanoid") or not KAVar then
+        ui.Frame.Visible=false
+        return
+    end
+    local h=t.Character.Humanoid
+    local name=UseDN and t.DisplayName or t.Name
+    local ratio=math.clamp(h.Health/h.MaxHealth,0,1)
+    ui.Frame.Visible=true
+    ui.Text.Text=name
+    ui.Img.Image="rbxthumb://type=AvatarHeadShot&id="..t.UserId.."&w=48&h=48"
+    ui.HP:TweenSize(UDim2.new(ratio,0,1,0),"Out","Quad",.1,true)
+    ui.HP.BackgroundColor3=ratio>.5 and Color3.fromRGB(0,255,0) or ratio>.25 and Color3.fromRGB(255,200,0) or Color3.fromRGB(255,0,0)
 end
 
-KAsec:AddToggle({
-	Name = "KillAura",
-	Flag = "KA",
-	Default = false,
-	Callback = function(s)
-		KAVar = s
-		if s then
-			task.spawn(function()
-				while KAVar do
-					local w = sword()
-					local t = nearest()
-					if w and t and t.Character then
-						r:FireServer(t.Character, w)
-						hl(t)
-						if HUDon then updHUD(t) end
-					else
-						hl(nil)
-						if HUDon then updHUD(nil) end
-					end
-					task.wait(.1)
-				end
-				hl(nil)
-				if HUDon then updHUD(nil) end
-			end)
-		else
-			hl(nil)
-			if HUDon then updHUD(nil) end
-		end
-	end
+local function playAnimation(animSequence,speed)
+    if not animSequence or #animSequence<2 then return end
+    AnimRunning=true
+    while AnimRunning and KAVar and nearplayerka() do
+        for i=1,#animSequence-1 do
+            local startFrame=animSequence[i].CFrame
+            local endFrame=animSequence[i+1].CFrame
+            local duration=animSequence[i+1].Time/speed
+            local elapsed=0
+            while elapsed<duration and AnimRunning do
+                local dt=task.wait()
+                elapsed=elapsed+dt
+                swordMotor.C0=startFrame:Lerp(endFrame, math.clamp(elapsed/duration,0,1))
+            end
+        end
+    end
+    swordMotor.C0=RestCFrame
+end
+
+KASec:AddToggle({Name="KillAura", Flag="KA_Toggle", Default=false, Callback=function(state)
+    KAVar=state
+    if state then
+        task.spawn(function()
+            while KAVar do
+                local s=autoequipkas()
+                if not s then s=swordequip() end
+                local t=nearplayerka()
+                if s and t then
+                    Hit:FireServer(t.Character,s)
+                    setHL(t)
+                    if HUDon then updHUD(t) end
+                    if CustomAnimKAVar and Animations[SelectedAnim] then
+                        task.spawn(function() playAnimation(Animations[SelectedAnim],AnimSpeed) end)
+                    else
+                        swordMotor.C0=RestCFrame
+                    end
+                else
+                    setHL(nil)
+                    if HUDon then updHUD(nil) end
+                    AnimRunning=false
+                    swordMotor.C0=RestCFrame
+                end
+                task.wait(KA.Config.Delay)
+            end
+            swordMotor.C0=RestCFrame
+        end)
+    else
+        swordMotor.C0=RestCFrame
+    end
+end})
+
+KASec:AddSlider({Name="Range", Flag="KA_Range", Default=18, Min=8, Max=30, Increment=1, Callback=function(v) KA.Config.Range=v<10 and 10 or v end})
+KASec:AddToggle({Name="Target HUD", Flag="KA_HUD", Default=false, Callback=function(v) HUDon=v if v then buildHUD() else if KA.HUD then KA.HUD.Frame:Destroy() KA.HUD=nil end end end})
+KASec:AddToggle({Name="Highlight", Flag="KA_HL", Default=false, Callback=function(v) HLon=v if not v then setHL(nil) end end})
+KASec:AddColorPicker({Name="Highlight Color", Flag="KA_HLC", Default=HLc, Callback=function(c) HLc=c if KA.HL then KA.HL.FillColor=c end end})
+KASec:AddColorPicker({Name="HUD Color", Flag="KA_HC", Default=HUDc, Callback=function(c) HUDc=c if KA.HUD and KA.HUD.Frame then KA.HUD.Frame.BackgroundColor3=c end end})
+KASec:AddToggle({Name="Use DisplayName", Flag="KA_DN", Default=false, Callback=function(v) UseDN=v end})
+KASec:AddToggle({Name="Move HUD", Flag="KA_Move", Default=false, Callback=function(v) MoveHUD=v end})
+
+KASec:AddToggle({
+    Name = "Custom Animation",
+    Flag = "KA_CustomAnim",
+    Default = false,
+    Callback = function(v)
+        CustomAnimKAVar = v
+    end
 })
 
-KAsec:AddToggle({Name="Highlight",Flag="KAhl",Default=false,Callback=function(s) HLon=s if not s then hl(nil) end end})
-KAsec:AddColorPicker({Name="Highlight Color",Default=HLc,Flag="KAhlC",Callback=function(c) HLc=c if curHL then curHL.FillColor=c end end})
-KAsec:AddToggle({Name="Target HUD",Flag="KAhud",Default=false,Callback=function(s) HUDon=s if s then makeHUD() else delHUD() end end})
-KAsec:AddToggle({Name="Use DisplayName",Flag="KAdn",Default=false,Callback=function(s) UseDN=s end})
-KAsec:AddToggle({Name="Move HUD",Flag="KAmove",Default=false,Callback=function(s) MoveHUD=s end})
-KAsec:AddColorPicker({Name="HUD Color",Default=HUDc,Flag="KAhudC",Callback=function(c) HUDc=c if HUD and HUD.F then HUD.F.BackgroundColor3=c end end})
+KASec:AddDropdown({
+    Name = "Custom Animation",
+    Flag = "KA_Anim",
+    Default = "Default",
+    Values = {"Default", "Spin"},
+    Callback = function(val)
+        SelectedAnim = val
+    end
+})
+
+KASec:AddSlider({
+    Name = "AnimSpeed",
+    Flag = "KA_AnimSpeed",
+    Default = 0.5,
+    Min = 0.1,
+    Max = 5,
+    Increment = 0.1,
+    Callback = function(v)
+        AnimSpeed = v
+    end
+})
 
 --Scaffold
 local ScaffoldSec = UtilityWindow:DrawSection({Name = "Scaffold", Risky = true})
@@ -750,10 +793,10 @@ local function PerformScaffold()
     end
 end
 
-local function StartScaffold()
+local function sscaffold()
     if ScaffoldTask then return end
     ScaffoldTask = task.spawn(function()
-        while ScaffoldEnabled do
+        while ScaffoldVar do
             PerformScaffold()
             task.wait(0.03)
         end
@@ -767,9 +810,9 @@ ScaffoldSec:AddToggle({
     Flag = "Scaffold",
     Default = false,
     Callback = function(State)
-        ScaffoldEnabled = State
+        ScaffoldVar = State
         if State then
-            StartScaffold()
+            sscaffold()
         end
     end
 })
@@ -867,23 +910,15 @@ local LongJumpSection = MovementWindow:DrawSection({ Name = "LongJump"})
 
 local keybindKey = Enum.KeyCode.Q
 local cooldown = false
-local cooldownTime = 2
+local cooldownTime = 1
 
 local function parseKey(key)
-	if typeof(key) == "EnumItem" and key.EnumType == Enum.KeyCode then
-		return key
-	end
-	if type(key) == "string" then
-		local name = key:gsub("Enum.KeyCode.", ""):gsub("KeyCode.", ""):gsub("%s", "")
-		if Enum.KeyCode[name] then
-			return Enum.KeyCode[name]
-		end
-		name = name:upper()
-		if Enum.KeyCode[name] then
-			return Enum.KeyCode[name]
-		end
-	end
-	return nil
+    if typeof(key) == "EnumItem" and key.EnumType == Enum.KeyCode then return key end
+    if type(key) == "string" then
+        local name = key:gsub("Enum.KeyCode.", ""):gsub("KeyCode.", ""):gsub("%s", ""):upper()
+        return Enum.KeyCode[name] or nil
+    end
+    return nil
 end
 
 local function performLongJump()
@@ -891,7 +926,7 @@ local function performLongJump()
 		Notify.new({
 			Title = "LongJump",
 			Content = "LongJump is on cooldown for " .. cooldownTime .. " seconds",
-			Duration = 2,
+			Duration = 1.3,
 			Icon = "lucide-mail-warning"
 		})
 		return
@@ -918,7 +953,7 @@ local function performLongJump()
 	local originalSpeed = humanoid.WalkSpeed
 	humanoid.WalkSpeed = 0
 
-	local destination = root.Position + (root.CFrame.LookVector * 50)
+	local destination = root.Position + (root.CFrame.LookVector * 49)
 	local tween = TweenService:Create(root, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { CFrame = CFrame.new(destination) })
 	tween:Play()
 
@@ -1152,8 +1187,8 @@ local start = function()
 		table.insert(conns, RunService.Heartbeat:Connect(function()
 			if not SpeedVar or method ~= "Classic" then return end
 			local h = hum()
-			if h and h.WalkSpeed ~= 34 then
-				h.WalkSpeed = 34
+			if h and h.WalkSpeed ~= 38 then
+				h.WalkSpeed = 38
 			end
 		end))
 	elseif method=="Velocity" then
@@ -1164,7 +1199,7 @@ local start = function()
 			if not h then return end
 			local d = h.MoveDirection
 			local v = c.PrimaryPart.AssemblyLinearVelocity
-			c.PrimaryPart.AssemblyLinearVelocity = Vector3.new(d.X*39, v.Y, d.Z*39)
+			c.PrimaryPart.AssemblyLinearVelocity = Vector3.new(d.X*42.5, v.Y, d.Z*42.5)
 		end))
 	elseif method=="Bounce" then
 		bounce = true
@@ -1242,18 +1277,18 @@ local DefaultCape = "SmokerV4/Assets/Capes/Default.png"
 local tex, part, mot = DefaultCape, nil, nil
 
 local function link(a)
-	if mot then mot:Destroy() end
-	local b = a:FindFirstChild("UpperTorso") or a:FindFirstChild("Torso") or a:FindFirstChild("HumanoidRootPart")
-	if not (b and part) then return end
-	part.Parent = WCamera
-	local w = Instance.new("Motor6D")
-	w.MaxVelocity = 0.08
-	w.Part0 = part
-	w.Part1 = b
-	w.C0 = CFrame.new(0,2,0) * CFrame.Angles(0,math.rad(-90),0)
-	w.C1 = CFrame.new(0,b.Size.Y/2,0.45) * CFrame.Angles(0,math.rad(90),0)
-	w.Parent = part
-	mot = w
+    if mot then mot:Destroy() mot = nil end
+    local b = a:FindFirstChild("UpperTorso") or a:FindFirstChild("Torso") or a:FindFirstChild("HumanoidRootPart")
+    if not (b and part) then return end
+    part.Parent = WCamera
+    local w = Instance.new("Motor6D")
+    w.MaxVelocity = 0.08
+    w.Part0 = part
+    w.Part1 = b
+    w.C0 = CFrame.new(0,2,0) * CFrame.Angles(0,math.rad(-90),0)
+    w.C1 = CFrame.new(0,b.Size.Y/2,0.45) * CFrame.Angles(0,math.rad(90),0)
+    w.Parent = part
+    mot = w
 end
 
 local function build(a)
@@ -1361,17 +1396,16 @@ local DamageSec = VisualWindow:DrawSection({Name = "Damage Indicator"})
 local DDColor = Color3.fromRGB(255, 255, 255)
 
 local function updColor()
-    local label = LocalPlayer.PlayerScripts:WaitForChild("DamageIndicatorScript")
-        :WaitForChild("DamageIndicatorGui"):WaitForChild("TextLabel")
-    if DmgColorVar then
-        label.TextColor3 = DDColor
-    else
-        label.TextColor3 = Color3.fromRGB(255, 255, 255)
-    end
+    local success, label = pcall(function()
+        return LocalPlayer.PlayerScripts:WaitForChild("DamageIndicatorScript"):WaitForChild("DamageIndicatorGui"):WaitForChild("TextLabel")
+    end)
+    if not success or not label then return end
+
+    label.TextColor3 = DmgColorVar and DDColor or Color3.fromRGB(255, 255, 255)
 end
 
 local ColorToggle = DamageSec:AddToggle({
-    Name = "Enable Custom Color",
+    Name = "Custom Color",
     Flag = "DamageColorToggle",
     Default = false,
     Callback = function(state)
@@ -1452,6 +1486,7 @@ SpiderSec:AddToggle({
 SpiderSec:AddDropdown({
 	Name = "Mode",
 	Values = {"Velocity","Impulse","CFrame"},
+	Flag = "Spider_Dropdown",
 	Default = "Velocity",
 	Callback = function(v)
 		mode = v
@@ -1460,6 +1495,7 @@ SpiderSec:AddDropdown({
 
 SpiderSec:AddSlider({
 	Name = "Climb Speed",
+	Flag = "ClimbSpeed_Setting",
 	Min = 10,
 	Max = 50,
 	Default = 30,
