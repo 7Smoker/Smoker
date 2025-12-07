@@ -9,7 +9,20 @@ Library:Loader(getcustomasset("SmokerV4/Assets/newlogo.png"), 2.5):yield()
 local SmokerV4 = Library.new({Name="BedFight",Keybind="RightShift",Logo=getcustomasset("SmokerV4/Assets/icon.png"),Scale=Library.Scale.Window,TextSize=15})
 
 -- [[ Notification ]] --
-Notify.new({Title = "SmokerV4",Content = "SmokerV4 script loaded successfully", Duration = 10, Icon = getcustomasset("SmokerV4/Assets/icon.png")});
+local icon = getcustomasset("SmokerV4/Assets/icon.png")
+Notify.new({
+    Title = "SmokerV4",
+    Content = "SmokerV4 script loaded successfully",
+    Duration = 10,
+    Icon = icon
+})
+
+Notify.new({
+    Title = "SmokerV4",
+    Content = "We are not gonna update the script for BedFight anymore! Use at your own risk!",
+    Duration = 25,
+    Icon = icon
+})
 
 -- [[ Watermark ]] --
 local watermark = SmokerV4:Watermark()
@@ -87,7 +100,6 @@ local NameTagsVar = false
 local VibeVar = false
 local ScaffoldVar = false
 local ProjectAimVar = false
-local NukerVar = false
 local VelocityVar = false
 local FOVVar = false
 local AutoToxicVar = false
@@ -136,7 +148,6 @@ local ForHudVars = {
     ["ProjectAim"] = function() return ProjectAimVar end,
     ["KillAura"] = function() return KillAuraVar end,
     ["Scaffold"] = function() return ScaffoldVar end,
-    ["Nuker"] = function() return NukerVar end,
     ["Velocity"] = function() return VelocityVar end,
     ["FOV"] = function() return FOVVar end,
     ["AutoToxic"] = function() return AutoToxicVar end,
@@ -1028,58 +1039,6 @@ InputService.InputBegan:Connect(function(input, processed)
 		performLongJump()
 	end
 end)
-
--- [[ Nuker ]] --
-local NukerSec = UtilityWindow:DrawSection({Name="Nuker"})
-local MineBlock = rs.Remotes.ItemsRemotes.MineBlock
-
-local function getBed(r)
-    local c = workspace:FindFirstChild("BedsContainer")
-    if not c then return end
-    local nearest, dist
-    for _, b in ipairs(c:GetChildren()) do
-        local hb = b:FindFirstChild("BedHitbox")
-        if hb and lplr.Character and lplr.Character.PrimaryPart then
-            local d = (lplr.Character.PrimaryPart.Position - hb.Position).Magnitude
-            if d <= r and (not dist or d < dist) then
-                nearest, dist = hb, d
-            end
-        end
-    end
-    return nearest
-end
-
-local function getPick()
-    for _, i in ipairs(lplr.Backpack:GetChildren()) do if i.Name:lower():find("pickaxe") then return i end end
-    if lplr.Character then for _, i in ipairs(lplr.Character:GetChildren()) do if i.Name:lower():find("pickaxe") then return i end end end
-end
-
-local function mine(pick, hb)
-    if not pick or not hb then return end
-    local model = hb.Parent
-    local pos = hb.Position
-    local org = pos + Vector3.new(0,3,0)
-    local dir = (pos-org).Unit
-    MineBlock:FireServer(pick.Name, model, vector.create(pos.X,pos.Y,pos.Z), vector.create(org.X,org.Y,org.Z), vector.create(dir.X,dir.Y,dir.Z))
-end
-
-NukerSec:AddToggle({
-    Name="Nuker",
-    Flag="Nuker",
-    Default=false,
-    Callback=function(state)
-        NukerVar = state
-        if state then task.spawn(function()
-            while NukerVar do
-                task.wait(0.1)
-                if not lplr.Character or not lplr.Character.PrimaryPart then continue end
-                local hb = getBed(30)
-                local pick = getPick()
-                if hb and pick then mine(pick,hb) end
-            end
-        end) end
-    end
-})
 
 -- [[ Velocity ]] --
 local VeloSec = MovementWindow:DrawSection({Name = "VelocityPatch"})
